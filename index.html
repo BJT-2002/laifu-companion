@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>来福</title>
+  <link rel="stylesheet" href="css/style.css?v=14">
+</head>
+<body>
+  <div class="phone-frame">
+    <!-- 背景图层 -->
+    <div class="bg-layer"></div>
+    <div class="bg-overlay"></div>
+
+    <!-- 顶部栏 -->
+    <header class="top-bar">
+      <div class="char-info">
+        <div class="char-text">
+          <h1>来福</h1>
+          <p class="status">在线</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <span class="mode-status mock" id="mode-status">Mock</span>
+        <button class="icon-btn" id="settings-btn">设置</button>
+      </div>
+    </header>
+
+    <!-- 聊天区 -->
+    <main class="chat-area">
+      <div class="chat-messages" id="chat-messages"></div>
+    </main>
+
+    <!-- 底部记忆抽屉 -->
+    <div class="memory-drawer" id="memory-drawer">
+      <div class="drawer-handle" id="drawer-handle"></div>
+      <div class="drawer-content">
+        <div class="drawer-header">
+          <span>来福的小本本</span>
+          <span class="active-info" id="last-active-label">首次见面</span>
+        </div>
+        <div class="intimacy">
+          <div class="intimacy-label">
+            <span>亲密度</span>
+            <span id="intimacy-label">0/100 · 刚认识</span>
+          </div>
+          <div class="intimacy-bar">
+            <div class="intimacy-fill" id="intimacy-bar" style="width:0%"></div>
+          </div>
+        </div>
+        <div id="memory-panel"></div>
+        <button class="btn-ghost" id="clear-memory">清空记忆</button>
+      </div>
+    </div>
+
+    <!-- 输入区 -->
+    <footer class="input-bar">
+      <button class="drawer-toggle" id="drawer-toggle" aria-label="记忆">
+        <span class="toggle-icon">☰</span>
+      </button>
+      <!-- 选项菜单 -->
+      <div class="options-menu" id="options-menu">
+        <button class="option-item" data-tab="memory">TA的记忆</button>
+        <button class="option-item" data-tab="diary">TA的日记</button>
+      </div>
+      <input type="text" id="user-input" placeholder="和来福说点什么…">
+      <button id="send-btn">发送</button>
+    </footer>
+  </div>
+
+  <!-- 设置弹窗 -->
+  <div class="modal" id="settings-modal">
+    <div class="modal-content">
+      <h3>设置</h3>
+      <div class="form-group">
+        <label>对话模式</label>
+        <label class="mode-switch-inline">
+          <input type="checkbox" id="mode-toggle">
+          <span>API 模式（默认 Mock）</span>
+        </label>
+      </div>
+      <div class="form-group">
+        <label>API Endpoint</label>
+        <input type="text" id="api-endpoint" placeholder="https://api.openai.com/v1/chat/completions">
+      </div>
+      <div class="form-group">
+        <label>API Key</label>
+        <input type="password" id="api-key" placeholder="sk-...">
+      </div>
+      <div class="form-group">
+        <label>模型名称</label>
+        <input type="text" id="api-model" value="gpt-4o-mini">
+      </div>
+      <div class="form-group">
+        <label>主动联系间隔（小时）</label>
+        <input type="number" id="threshold-input" value="6" min="1" step="1">
+        <p class="hint">超过这个时间没发消息，来福会主动找你</p>
+      </div>
+      <div class="form-group">
+        <label>演示隔日记忆</label>
+        <button class="btn-secondary" id="simulate-next-day" style="width:100%">模拟到明天（刷新后生效）</button>
+        <p class="hint">点击后刷新页面，来福会提起昨天的事</p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="document.getElementById('settings-modal').classList.remove('open')">取消</button>
+        <button class="btn-primary" id="save-settings">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 日记弹窗 -->
+  <div class="modal" id="diary-modal">
+    <div class="modal-content diary-modal-content">
+      <div class="modal-header">
+        <h3>来福的日记</h3>
+        <button class="modal-close" id="diary-close">×</button>
+      </div>
+      <div class="diary-actions">
+        <button class="btn-primary" id="generate-diary">生成今日日记</button>
+        <span class="diary-hint" id="diary-hint"></span>
+      </div>
+      <div class="diary-list" id="diary-list">
+        <p class="empty">还没有日记，连接 API 并聊够 5 轮后，来福会为你写日记</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/character.js?v=14"></script>
+  <script src="js/memory.js?v=14"></script>
+  <script src="js/safety.js?v=14"></script>
+  <script src="js/cognition.js?v=14"></script>
+  <script src="js/dialogue.js?v=14"></script>
+  <script src="js/app.js?v=14"></script>
+  <script>
+    // 选项菜单交互
+    const optionsMenu = document.getElementById('options-menu');
+    const drawerToggle = document.getElementById('drawer-toggle');
+    const memoryDrawer = document.getElementById('memory-drawer');
+    const diaryModal = document.getElementById('diary-modal');
+
+    drawerToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = optionsMenu.classList.toggle('open');
+      drawerToggle.classList.toggle('active', isOpen);
+      memoryDrawer.classList.remove('open');
+      diaryModal.classList.remove('open');
+    });
+
+    // 点击选项
+    document.querySelectorAll('.option-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const tab = item.dataset.tab;
+        optionsMenu.classList.remove('open');
+        drawerToggle.classList.remove('active');
+        if (tab === 'memory') {
+          memoryDrawer.classList.add('open');
+        } else if (tab === 'diary') {
+          diaryModal.classList.add('open');
+          if (window.App) App.renderDiaryList();
+        }
+      });
+    });
+
+    // 点击外部关闭菜单
+    document.addEventListener('click', (e) => {
+      if (!optionsMenu.contains(e.target) && e.target !== drawerToggle) {
+        optionsMenu.classList.remove('open');
+        drawerToggle.classList.remove('active');
+      }
+    });
+  </script>
+</body>
+</html>
