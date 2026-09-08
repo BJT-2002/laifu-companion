@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>来福</title>
-  <link rel="stylesheet" href="css/style.css?v=14">
+  <link rel="stylesheet" href="css/style.css?v=15">
 </head>
 <body>
   <div class="phone-frame">
@@ -81,15 +81,15 @@
       </div>
       <div class="form-group">
         <label>API Endpoint</label>
-        <input type="text" id="api-endpoint" placeholder="https://api.openai.com/v1/chat/completions">
+        <input type="text" id="api-endpoint" placeholder="https://api.deepseek.com/chat/completions" value="https://api.deepseek.com/chat/completions">
       </div>
       <div class="form-group">
         <label>API Key</label>
-        <input type="password" id="api-key" placeholder="sk-...">
+        <input type="password" id="api-key" placeholder="sk-...（DeepSeek 的 key）">
       </div>
       <div class="form-group">
         <label>模型名称</label>
-        <input type="text" id="api-model" value="gpt-4o-mini">
+        <input type="text" id="api-model" value="deepseek-chat">
       </div>
       <div class="form-group">
         <label>主动联系间隔（小时）</label>
@@ -102,6 +102,7 @@
         <p class="hint">点击后刷新页面，来福会提起昨天的事</p>
       </div>
       <div class="modal-actions">
+        <button class="btn-secondary" id="test-api">测试连接</button>
         <button class="btn-secondary" onclick="document.getElementById('settings-modal').classList.remove('open')">取消</button>
         <button class="btn-primary" id="save-settings">保存</button>
       </div>
@@ -125,12 +126,12 @@
     </div>
   </div>
 
-  <script src="js/character.js?v=14"></script>
-  <script src="js/memory.js?v=14"></script>
-  <script src="js/safety.js?v=14"></script>
-  <script src="js/cognition.js?v=14"></script>
-  <script src="js/dialogue.js?v=14"></script>
-  <script src="js/app.js?v=14"></script>
+  <script src="js/character.js?v=15"></script>
+  <script src="js/memory.js?v=15"></script>
+  <script src="js/safety.js?v=15"></script>
+  <script src="js/cognition.js?v=15"></script>
+  <script src="js/dialogue.js?v=15"></script>
+  <script src="js/app.js?v=15"></script>
   <script>
     // 选项菜单交互
     const optionsMenu = document.getElementById('options-menu');
