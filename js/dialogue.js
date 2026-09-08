@@ -70,8 +70,16 @@ const Dialogue = {
 
     // === 8. LLM 生成 ===
     let replyText;
+    let apiError = null;
     if (this.mode === 'api' && this.apiConfig.apiKey && this.apiConfig.endpoint) {
-      replyText = await this.generateApiReply(userText, memory, recalled, history, emotion, intent, need, strategy);
+      const apiResult = await this.generateApiReply(userText, memory, recalled, history, emotion, intent, need, strategy);
+      if (apiResult.error) {
+        apiError = apiResult.error;
+        // API 失败时降级到 mock，但标记错误
+        replyText = this.generateMockReply(userText, memory, recalled, emotion, intent, need, strategy);
+      } else {
+        replyText = apiResult.text;
+      }
     } else {
       replyText = this.generateMockReply(userText, memory, recalled, emotion, intent, need, strategy);
     }
@@ -103,7 +111,7 @@ const Dialogue = {
       Memory.incrementFollowUp(memory, evt.id);
     }
 
-    return { text: replyText, emotion: emotion.label, isCrisis: false, memoryUpdate, recalled, strategy, intent, need };
+    return { text: replyText, emotion: emotion.label, isCrisis: false, memoryUpdate, recalled, strategy, intent, need, apiError };
   },
 
   // ============ 隔日问候 ============
@@ -379,12 +387,17 @@ const Dialogue = {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.apiConfig.apiKey}` },
         body: JSON.stringify({ model: this.apiConfig.model, messages, temperature: 0.85, max_tokens: 250 })
       });
-      if (!response.ok) throw new Error(`API: ${response.status}`);
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(`HTTP ${response.status}: ${errData.error?.message || response.statusText}`);
+      }
       const data = await response.json();
-      return data.choices?.[0]?.message?.content || Safety.fallbackResponse();
+      const content = data.choices?.[0]?.message?.content;
+      if (!content) throw new Error('API 返回为空');
+      return { text: content, error: null };
     } catch (e) {
-      console.error('API 失败，降级 Mock', e);
-      return this.generateMockReply(userText, memory, recalled, emotion, intent, need, strategy);
+      console.error('API 调用失败', e);
+      return { text: null, error: e.message };
     }
   },
 
