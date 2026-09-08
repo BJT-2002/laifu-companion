@@ -14,10 +14,13 @@ const App = {
 
   init() {
     this.cacheElements();
+    Dialogue.loadConfig();       // 恢复 API 配置（endpoint/key/model/mode/threshold）
     this.memory = Memory.load();
     this.bindEvents();
     this.renderMemoryPanel();
     this.renderModeStatus();
+    // 同步设置面板里的 mode 开关状态
+    this.el.modeToggle.checked = Dialogue.mode === 'api';
 
     // 隔日检测：如果今天是新的一天，先发隔日问候
     if (this.memory.lastActiveDate && Memory.isNewDay(this.memory)) {
@@ -45,6 +48,7 @@ const App = {
       settingsBtn: document.getElementById('settings-btn'),
       settingsModal: document.getElementById('settings-modal'),
       saveSettings: document.getElementById('save-settings'),
+      testApi: document.getElementById('test-api'),
       apiEndpoint: document.getElementById('api-endpoint'),
       apiKey: document.getElementById('api-key'),
       apiModel: document.getElementById('api-model'),
@@ -105,13 +109,48 @@ const App = {
       Dialogue.setApiConfig({
         endpoint: this.el.apiEndpoint.value.trim(),
         apiKey: this.el.apiKey.value.trim(),
-        model: this.el.apiModel.value.trim() || 'gpt-4o-mini'
+        model: this.el.apiModel.value.trim() || 'deepseek-chat'
       });
       const hours = parseFloat(this.el.thresholdInput.value) || 6;
       Dialogue.setProactiveThreshold(hours * 60 * 60 * 1000);
       this.el.settingsModal.classList.remove('open');
       this.renderModeStatus();
       this.resetProactiveTimer();
+    });
+
+    // 测试 API 连接
+    this.el.testApi.addEventListener('click', async () => {
+      const endpoint = this.el.apiEndpoint.value.trim();
+      const apiKey = this.el.apiKey.value.trim();
+      const model = this.el.apiModel.value.trim() || 'deepseek-chat';
+      if (!endpoint || !apiKey) {
+        alert('请先填写 API Endpoint 和 API Key');
+        return;
+      }
+      const btn = this.el.testApi;
+      const original = btn.textContent;
+      btn.textContent = '测试中...';
+      btn.disabled = true;
+      try {
+        const resp = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+          body: JSON.stringify({ model, messages: [{ role: 'user', content: '你好' }], max_tokens: 10 })
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          const reply = data.choices?.[0]?.message?.content || '';
+          alert(`✅ 连接成功！\n模型回复：${reply.slice(0, 50)}`);
+        } else {
+          const err = await resp.json().catch(() => ({}));
+          alert(`❌ 连接失败\n状态码：${resp.status}\n${err.error?.message || resp.statusText}`);
+        }
+      } catch (e) {
+        alert(`❌ 请求失败\n${e.message}`);
+      } finally {
+        btn.textContent = original;
+        btn.disabled = false;
+      }
     });
 
     this.el.settingsModal.addEventListener('click', (e) => {
