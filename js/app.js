@@ -106,11 +106,15 @@ const App = {
     });
 
     this.el.saveSettings.addEventListener('click', () => {
-      Dialogue.setApiConfig({
-        endpoint: this.el.apiEndpoint.value.trim(),
-        apiKey: this.el.apiKey.value.trim(),
-        model: this.el.apiModel.value.trim() || 'deepseek-chat'
-      });
+      const endpoint = this.el.apiEndpoint.value.trim();
+      const apiKey = this.el.apiKey.value.trim();
+      const model = this.el.apiModel.value.trim() || 'deepseek-chat';
+      Dialogue.setApiConfig({ endpoint, apiKey, model });
+      // 填了 key 就自动开启 API 模式
+      if (apiKey) {
+        Dialogue.setMode('api');
+        this.el.modeToggle.checked = true;
+      }
       const hours = parseFloat(this.el.thresholdInput.value) || 6;
       Dialogue.setProactiveThreshold(hours * 60 * 60 * 1000);
       this.el.settingsModal.classList.remove('open');
@@ -199,6 +203,10 @@ const App = {
       this.addMessage('assistant', result.text, result.emotion);
       this.history.push({ role: 'assistant', text: result.text });
       this.renderMemoryPanel();
+      // API 调用失败时提示用户（当前回复是 Mock 降级的）
+      if (result.apiError) {
+        this.showApiErrorNotice(result.apiError);
+      }
     } catch (e) {
       this.hideTypingIndicator();
       this.addMessage('assistant', Safety.fallbackResponse());
@@ -254,6 +262,20 @@ const App = {
 
     this.el.chatMessages.appendChild(bubble);
     this.el.chatMessages.scrollTop = this.el.chatMessages.scrollHeight;
+  },
+
+  // 显示 API 错误提示条（自动消失）
+  showApiErrorNotice(errorMsg) {
+    const notice = document.createElement('div');
+    notice.style.cssText = `
+      position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+      background: #fff3cd; color: #856404; padding: 10px 16px; border-radius: 8px;
+      font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 9999;
+      max-width: 340px; text-align: center;
+    `;
+    notice.textContent = `⚠️ API 调用失败，已切换到本地回复。原因：${errorMsg}`;
+    document.body.appendChild(notice);
+    setTimeout(() => notice.remove(), 6000);
   },
 
   showTypingIndicator() {
