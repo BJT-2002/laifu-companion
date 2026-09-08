@@ -7,17 +7,38 @@
 const Dialogue = {
   mode: 'mock',
   apiConfig: {
-    endpoint: '',
+    endpoint: 'https://api.deepseek.com/chat/completions',
     apiKey: '',
-    model: 'gpt-4o-mini'
+    model: 'deepseek-chat'
   },
 
   // 主动联系的空闲阈值（毫秒），默认 6 小时（可在设置面板调整）
   proactiveThreshold: 6 * 60 * 60 * 1000,
 
-  setMode(mode) { this.mode = mode; },
-  setApiConfig(config) { this.apiConfig = { ...this.apiConfig, ...config }; },
-  setProactiveThreshold(ms) { this.proactiveThreshold = ms; },
+  setMode(mode) {
+    this.mode = mode;
+    localStorage.setItem('laifu_mode', mode);
+  },
+  setApiConfig(config) {
+    this.apiConfig = { ...this.apiConfig, ...config };
+    localStorage.setItem('laifu_api_config', JSON.stringify(this.apiConfig));
+  },
+  setProactiveThreshold(ms) {
+    this.proactiveThreshold = ms;
+    localStorage.setItem('laifu_threshold', String(ms));
+  },
+
+  // 从 localStorage 恢复配置
+  loadConfig() {
+    try {
+      const saved = localStorage.getItem('laifu_api_config');
+      if (saved) this.apiConfig = { ...this.apiConfig, ...JSON.parse(saved) };
+      const mode = localStorage.getItem('laifu_mode');
+      if (mode) this.mode = mode;
+      const threshold = localStorage.getItem('laifu_threshold');
+      if (threshold) this.proactiveThreshold = parseInt(threshold, 10);
+    } catch (e) { console.warn('配置恢复失败', e); }
+  },
 
   async generateReply(userText, memory, history) {
     // === 0. Safety Gate（输入安全前置） ===
